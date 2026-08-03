@@ -7,7 +7,7 @@ const api = axios.create({
 
 // Attach the JWT (if present) to every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('buzzhive_token');
+  const token = localStorage.getItem('buzzhive_token') || localStorage.getItem('buzzhive_admin_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
