@@ -51,11 +51,22 @@ export default function Messages() {
       setActive(existing.partner);
       return;
     }
+
     try {
       const res = await api.get(`/users/id/${userId}`);
-      setActive(res.data.user);
+      const partner = res.data.user;
+      if (!partner?.id) throw new Error('User not found');
+
+      // Only allow chats with people who have accepted a follow request.
+      const canMessage = Boolean(partner.followStatus === 'ACCEPTED' || partner.followStatus === 'accepted');
+      if (!canMessage) {
+        showToast('You can only message people who have accepted your follow request.', 'error');
+        return;
+      }
+
+      setActive(partner);
     } catch (err) {
-      showToast('Could not open that conversation', 'error');
+      showToast(err.response?.data?.message || 'Could not open that conversation', 'error');
     }
   }
 
@@ -88,6 +99,11 @@ export default function Messages() {
   }
 
   function selectPartner(partner) {
+    if (partner?.followStatus && partner.followStatus !== 'ACCEPTED' && partner.followStatus !== 'accepted') {
+      showToast('You can only message people who have accepted your follow request.', 'error');
+      return;
+    }
+
     setActive(partner);
     setQuery('');
     setSearchResults([]);
@@ -116,6 +132,9 @@ export default function Messages() {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{u.name}</p>
                 <p className="text-xs text-gray-500">@{u.username}</p>
+                {u.followStatus && u.followStatus !== 'ACCEPTED' && u.followStatus !== 'accepted' && (
+                  <p className="text-[11px] text-hive-yellow">Follow request pending</p>
+                )}
               </div>
             </button>
           ))}
