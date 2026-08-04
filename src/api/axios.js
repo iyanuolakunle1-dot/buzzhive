@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://buzzhive-backend.onrender.com/api',
-  timeout: 15000, // fail fast on a bad connection instead of hanging indefinitely
+  timeout: 60000, // Render free tier can take ~30s to wake from sleep
 });
 
 // Attach the JWT (if present) to every request
