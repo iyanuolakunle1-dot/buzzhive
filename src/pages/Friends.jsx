@@ -90,7 +90,7 @@ export default function Friends() {
 
   const tabs = [
     { id: 'requests', label: `Requests (${requests.length})` },
-    { id: 'following', label: `Following (${following.length})` },
+    { id: 'following', label: `Friends (${following.length})` },
     { id: 'suggestions', label: 'Suggestions' },
   ];
 

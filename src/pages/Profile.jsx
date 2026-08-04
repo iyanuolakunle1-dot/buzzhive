@@ -17,7 +17,7 @@ export default function Profile() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [followStatus, setFollowStatus] = useState('NONE'); // NONE | PENDING
+  const [followStatus, setFollowStatus] = useState('NONE'); // NONE | PENDING | ACCEPTED | FRIENDS
   const [followBusy, setFollowBusy] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
@@ -114,7 +114,7 @@ export default function Profile() {
               >
                 {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" alt={user.name} /> : user.name?.[0]?.toUpperCase()}
               </button>
-              {me.username === user.username && (
+              {me?.username === user.username && (
                 <>
                   <button
                     onClick={(e) => { e.stopPropagation(); avatarInputRef.current?.click(); }}
@@ -128,23 +128,27 @@ export default function Profile() {
                 </>
               )}
             </div>
-            {me.username !== user.username && (
+            {me && me.username !== user.username && (
               <div className="flex gap-2">
                 <button
                   onClick={handleFollow}
                   disabled={followBusy}
                   className={`text-sm font-semibold px-4 py-1.5 rounded-lg disabled:opacity-50 ${
-                    followStatus === 'NONE' ? 'bg-hive-yellow text-black' : 'border border-gray-200 dark:border-hive-border text-gray-700 dark:text-gray-200'
+                    followStatus === 'NONE' ? 'bg-hive-yellow text-black' :
+                    followStatus === 'PENDING' ? 'border border-gray-200 dark:border-hive-border text-gray-700 dark:text-gray-200' :
+                    'border border-gray-200 dark:border-hive-border text-gray-700 dark:text-gray-200'
                   }`}
                 >
-                  {followStatus === 'ACCEPTED' ? 'Following' : followStatus === 'PENDING' ? 'Requested' : 'Follow'}
+                  {followStatus === 'ACCEPTED' ? 'Friends ✓' : followStatus === 'PENDING' ? 'Requested' : 'Add Friend'}
                 </button>
-                <button
-                  onClick={() => navigate(`/messages?to=${user.id}&username=${user.username}`)}
-                  className="text-sm font-semibold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-hive-border text-gray-600 dark:text-gray-300 flex items-center gap-1.5"
-                >
-                  <MessageCircle size={15} /> Message
-                </button>
+                {followStatus === 'ACCEPTED' && (
+                  <button
+                    onClick={() => navigate(`/messages?to=${user.id}&username=${user.username}`)}
+                    className="text-sm font-semibold px-3 py-1.5 rounded-lg bg-hive-yellow text-black flex items-center gap-1.5"
+                  >
+                    <MessageCircle size={15} /> Message
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -154,7 +158,7 @@ export default function Profile() {
 
           <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
             {user.location && <span className="flex items-center gap-1"><MapPin size={13} /> {user.location}</span>}
-            <span className="flex items-center gap-1"><Calendar size={13} /> Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+            <span className="flex items-center gap-1"><Calendar size={13} /> Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}</span>
           </div>
 
           <div className="flex gap-5 mt-4 text-sm">

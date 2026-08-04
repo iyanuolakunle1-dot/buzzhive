@@ -45,10 +45,35 @@ export default function Messages() {
     setConversations(res.data.conversations);
   }
 
+  function normalizeFollowStatus(status) {
+    if (!status) return 'NONE';
+    const value = String(status).toUpperCase();
+    if (value === 'ACCEPTED' || value === 'ACCEPTED') return 'ACCEPTED';
+    if (value === 'PENDING') return 'PENDING';
+    return value;
+  }
+
+  async function resolvePartner(partner) {
+    if (!partner?.id) return partner;
+    try {
+      const res = await api.get(`/users/id/${partner.id}`);
+      const freshPartner = res.data.user;
+      if (!freshPartner?.id) return partner;
+      return {
+        ...partner,
+        ...freshPartner,
+        followStatus: normalizeFollowStatus(freshPartner.followStatus || partner.followStatus),
+      };
+    } catch {
+      return partner;
+    }
+  }
+
   async function openConversationById(userId) {
     const existing = conversations.find((c) => c.partner.id === userId);
     if (existing) {
-      setActive(existing.partner);
+      const partner = await resolvePartner(existing.partner);
+      setActive(partner);
       return;
     }
 
@@ -56,13 +81,6 @@ export default function Messages() {
       const res = await api.get(`/users/id/${userId}`);
       const partner = res.data.user;
       if (!partner?.id) throw new Error('User not found');
-
-      // Only allow chats with people who have accepted a follow request.
-      const canMessage = Boolean(partner.followStatus === 'ACCEPTED' || partner.followStatus === 'accepted');
-      if (!canMessage) {
-        showToast('You can only message people who have accepted your follow request.', 'error');
-        return;
-      }
 
       setActive(partner);
     } catch (err) {
@@ -82,10 +100,10 @@ export default function Messages() {
     setText('');
     try {
       await api.post(`/messages/${active.id}`, { content });
-      loadThread(active.id);
-      loadConversations();
+      await Promise.all([loadThread(active.id), loadConversations()]);
     } catch (err) {
-      showToast(err.response?.data?.message || 'Message failed to send', 'error');
+      const message = err.response?.data?.message || 'Message failed to send';
+      showToast(message, 'error');
       setText(content);
     }
   }
@@ -98,13 +116,9 @@ export default function Messages() {
     setSearchResults(res.data.users.filter((u) => u.id !== user.id));
   }
 
-  function selectPartner(partner) {
-    if (partner?.followStatus && partner.followStatus !== 'ACCEPTED' && partner.followStatus !== 'accepted') {
-      showToast('You can only message people who have accepted your follow request.', 'error');
-      return;
-    }
-
-    setActive(partner);
+  async function selectPartner(partner) {
+    const resolved = await resolvePartner(partner);
+    setActive(resolved);
     setQuery('');
     setSearchResults([]);
     setSearchParams({});
@@ -200,7 +214,11 @@ export default function Messages() {
                 placeholder="Type a message..."
                 className="flex-1 bg-gray-100 dark:bg-white/5 rounded-full px-4 py-2.5 text-sm outline-none text-gray-800 dark:text-gray-100"
               />
-              <button type="submit" disabled={!text.trim()} className="p-2.5 rounded-full bg-hive-yellow text-black disabled:opacity-50 shrink-0">
+              <button
+                type="submit"
+                disabled={!text.trim()}
+                className="p-2.5 rounded-full bg-hive-yellow text-black disabled:opacity-50 shrink-0"
+              >
                 <Send size={16} />
               </button>
             </form>
